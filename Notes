@@ -1,0 +1,210 @@
+First create secret
+
+then only deployment works
+
+to create mongo db secret- store username password
+./kubectl apply -f /home/anurag/IdeaProjects/kubernetes-learning/mongo-secret.yaml
+
+to create mongo db deployment
+./kubectl apply -f /home/anurag/IdeaProjects/kubernetes-learning/mongodb-deployment.yaml
+
+
+create internal service so that other components or pods can talk to mongo db service
+./kubectl apply -f /home/anurag/IdeaProjects/kubernetes-learning/mongodb-deployment.yaml
+
+
+./kubectl describe service mongodb-service
+Name:              mongodb-service
+Namespace:         default
+Labels:            <none>
+Annotations:       <none>
+Selector:          app=mongodb
+Type:              ClusterIP
+IP Families:       <none>
+IP:                10.107.219.51
+IPs:               10.107.219.51
+Port:              <unset>  27017/TCP
+TargetPort:        27017/TCP
+Endpoints:         172.17.0.3:27017
+Session Affinity:  None
+Events:            <none>
+
+
+./kubectl get pod -o wide
+NAME                                  READY   STATUS    RESTARTS   AGE   IP           NODE       NOMINATED NODE   READINESS GATES
+mongodb-deployment-7d74bbb8bc-tfmmr   1/1     Running   0          15m   172.17.0.3   minikube   <none>           <none>
+
+
+./kubectl get all | grep mongodb
+pod/mongodb-deployment-7d74bbb8bc-tfmmr   1/1     Running   0          16m
+service/mongodb-service   ClusterIP   10.107.219.51   <none>        27017/TCP   5m33s
+deployment.apps/mongodb-deployment   1/1     1            1           16m
+replicaset.apps/mongodb-deployment-7d74bbb8bc   1         1         1       16m
+
+anurag@anurag-pc:~/Kubernetes/Kubernetes$ ./kubectl apply -f /home/anurag/IdeaProjects/kubernetes-learning/mongo-express.yaml
+deployment.apps/mongo-express created
+
+
+anurag@anurag-pc:~/Kubernetes/Kubernetes$ ./kubectl get pod
+NAME                                  READY   STATUS    RESTARTS   AGE
+mongo-express-78fcf796b8-2wrhf        1/1     Running   0          5s
+mongodb-deployment-7d74bbb8bc-tfmmr   1/1     Running   1          18h
+
+
+anurag@anurag-pc:~/Kubernetes/Kubernetes$ ./kubectl get logs pod/mongo-express-78fcf796b8-2wrhf
+error: there is no need to specify a resource type as a separate argument when passing arguments in resource/name form (e.g. 'kubectl get resource/<resource_name>' instead of 'kubectl get resource resource/<resource_name>'
+anurag@anurag-pc:~/Kubernetes/Kubernetes$ ./kubectl logs pod/mongo-express-78fcf796b8-2wrhf
+Waiting for mongodb-service:27017...
+Welcome to mongo-express
+------------------------
+
+
+Mongo Express server listening at http://0.0.0.0:8081
+
+
+anurag@anurag-pc:~/Kubernetes/Kubernetes$ ./kubectl apply -f /home/anurag/IdeaProjects/kubernetes-learning/mongo-express.yaml
+deployment.apps/mongo-express unchanged
+service/mongodb-express-service created
+
+
+-- In order to bind service to external IP address
+
+anurag@anurag-pc:~/Kubernetes/Minikube$ ./minikube-linux-amd64 service mongodb-express-service
+|-----------|-------------------------|-------------|-----------------------------|
+| NAMESPACE |          NAME           | TARGET PORT |             URL             |
+|-----------|-------------------------|-------------|-----------------------------|
+| default   | mongodb-express-service |        8081 | http://192.168.99.100:30000 |
+|-----------|-------------------------|-------------|-----------------------------|
+🎉  Opening service default/mongodb-express-service in default browser...
+
+
+--Installing Ingres
+anurag@anurag-pc:~/Kubernetes/Minikube$ ./minikube-linux-amd64 addons enable ingress
+🔎  Verifying ingress addon...
+🌟  The 'ingress' addon is enabled
+
+
+anurag@anurag-pc:~/Kubernetes/kubctl-executable$ ./kubectl get pod -n kube-system
+NAME                                        READY   STATUS      RESTARTS   AGE
+coredns-74ff55c5b-jlz69                     1/1     Running     3          4d17h
+etcd-minikube                               1/1     Running     3          4d17h
+ingress-nginx-admission-create-s9hgz        0/1     Completed   0          2m26s
+ingress-nginx-admission-patch-lhn5d         0/1     Completed   0          2m26s
+ingress-nginx-controller-558664778f-2mf8w   1/1     Running     0          2m26s
+kube-apiserver-minikube                     1/1     Running     3          4d17h
+kube-controller-manager-minikube            1/1     Running     3          4d17h
+kube-proxy-gcrh8                            1/1     Running     3          4d17h
+kube-scheduler-minikube                     1/1     Running     3          4d17h
+storage-provisioner                         1/1     Running     7          4d17h
+
+-- To enable kubernetes dashboard
+anurag@anurag-pc:~/Kubernetes/Minikube$ ./minikube-linux-amd64 dashboard
+🔌  Enabling dashboard ...
+🤔  Verifying dashboard health ...
+🚀  Launching proxy ...
+    > kubectl.sha256: 64 B / 64 B [--------------------------] 100.00% ? p/s 0s
+    > kubectl: 38.37 MiB / 38.37 MiB [----------------] 100.00% 6.30 MiB p/s 6s
+🤔  Verifying proxy health ...
+🎉  Opening http://127.0.0.1:44943/api/v1/namespaces/kubernetes-dashboard/services/http:kubernetes-dashboard:/proxy/ in your default browser...
+
+anurag@anurag-pc:~/Kubernetes/Minikube$ ./minikube-linux-amd64 addons enable dashboard
+💡  Some dashboard features require the metrics-server addon. To enable all features please run:
+
+	minikube addons enable metrics-server
+
+
+🌟  The 'dashboard' addon is enabled
+anurag@anurag-pc:~/Kubernetes/Minikube$ minikube addons enable metrics-server
+
+Command 'minikube' not found, did you mean:
+
+  command 'minitube' from deb minitube (3.1-1build1)
+
+Try: sudo apt install <deb name>
+
+anurag@anurag-pc:~/Kubernetes/Minikube$ ./minikube-linux-amd64 addons enable metrics-server
+🌟  The 'metrics-server' addon is enabled
+
+anurag@anurag-pc:~/Kubernetes/kubctl-executable$ ./kubectl get pods --all-namespaces -o wide
+NAMESPACE              NAME                                        READY   STATUS      RESTARTS   AGE     IP               NODE       NOMINATED NODE   READINESS GATES
+default                mongo-express-78fcf796b8-2wrhf              1/1     Running     2          24h     172.17.0.3       minikube   <none>           <none>
+default                mongodb-deployment-7d74bbb8bc-tfmmr         1/1     Running     2          42h     172.17.0.4       minikube   <none>           <none>
+kube-system            coredns-74ff55c5b-jlz69                     1/1     Running     3          4d19h   172.17.0.2       minikube   <none>           <none>
+kube-system            etcd-minikube                               1/1     Running     3          4d19h   192.168.99.100   minikube   <none>           <none>
+kube-system            ingress-nginx-admission-create-s9hgz        0/1     Completed   0          98m     172.17.0.5       minikube   <none>           <none>
+kube-system            ingress-nginx-admission-patch-lhn5d         0/1     Completed   0          98m     172.17.0.6       minikube   <none>           <none>
+kube-system            ingress-nginx-controller-558664778f-2mf8w   1/1     Running     0          98m     172.17.0.5       minikube   <none>           <none>
+kube-system            kube-apiserver-minikube                     1/1     Running     3          4d19h   192.168.99.100   minikube   <none>           <none>
+kube-system            kube-controller-manager-minikube            1/1     Running     3          4d19h   192.168.99.100   minikube   <none>           <none>
+kube-system            kube-proxy-gcrh8                            1/1     Running     3          4d19h   192.168.99.100   minikube   <none>           <none>
+kube-system            kube-scheduler-minikube                     1/1     Running     3          4d19h   192.168.99.100   minikube   <none>           <none>
+kube-system            metrics-server-56c4f8c9d6-6n4tm             1/1     Running     0          34m     172.17.0.8       minikube   <none>           <none>
+kube-system            storage-provisioner                         1/1     Running     7          4d19h   192.168.99.100   minikube   <none>           <none>
+kubernetes-dashboard   dashboard-metrics-scraper-c95fcf479-478c4   1/1     Running     0          77m     172.17.0.7       minikube   <none>           <none>
+kubernetes-dashboard   kubernetes-dashboard-6cff4c7c4f-9lmds       1/1     Running     0          77m     172.17.0.6       minikube   <none>           <none>
+
+
+-- To get All namespaces
+anurag@anurag-pc:~/Kubernetes/kubctl-executable$ ./kubectl get ns
+NAME                   STATUS   AGE
+default                Active   4d23h
+kube-node-lease        Active   4d23h
+kube-public            Active   4d23h
+kube-system            Active   4d23h
+kubernetes-dashboard   Active   5h35m
+
+anurag@anurag-pc:~/Kubernetes/kubctl-executable$ ./kubectl get all -n kubernetes-dashboard
+NAME                                            READY   STATUS    RESTARTS   AGE
+pod/dashboard-metrics-scraper-c95fcf479-478c4   1/1     Running   0          5h41m
+pod/kubernetes-dashboard-6cff4c7c4f-9lmds       1/1     Running   0          5h41m
+
+NAME                                TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+service/dashboard-metrics-scraper   ClusterIP   10.108.201.4   <none>        8000/TCP   5h41m
+service/kubernetes-dashboard        ClusterIP   10.108.50.79   <none>        80/TCP     5h41m
+
+NAME                                        READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/dashboard-metrics-scraper   1/1     1            1           5h41m
+deployment.apps/kubernetes-dashboard        1/1     1            1           5h41m
+
+NAME                                                  DESIRED   CURRENT   READY   AGE
+replicaset.apps/dashboard-metrics-scraper-c95fcf479   1         1         1       5h41m
+replicaset.apps/kubernetes-dashboard-6cff4c7c4f       1         1         1       5h41m
+
+
+-- with video tutorial Ingress was not getting created
+-- referred this link to create Ingress - https://stackoverflow.com/questions/64125048/get-error-unknown-field-servicename-in-io-k8s-api-networking-v1-ingressbacken
+anurag@anurag-pc:~/Kubernetes/kubctl-executable$ ./kubectl apply -f /home/anurag/IdeaProjects/kubernetes-learning/kubernetes-dashboard.yaml
+ingress.networking.k8s.io/dashboard-ingress created
+
+-- Get all
+./kubectl get pods -o wide --all-namespaces
+
+
+anurag@anurag-pc:~/Kubernetes/kubctl-executable$ ./kubectl describe service kubernetes-dashboard -n kubernetes-dashboard
+Name:              kubernetes-dashboard
+Namespace:         kubernetes-dashboard
+Labels:            addonmanager.kubernetes.io/mode=Reconcile
+                   k8s-app=kubernetes-dashboard
+                   kubernetes.io/minikube-addons=dashboard
+Annotations:       <none>
+Selector:          k8s-app=kubernetes-dashboard
+Type:              ClusterIP
+IP Families:       <none>
+IP:                10.108.50.79
+IPs:               10.108.50.79
+Port:              <unset>  80/TCP
+TargetPort:        9090/TCP
+Endpoints:         172.17.0.5:9090
+Session Affinity:  None
+Events:            <none>
+
+
+-- here kubernetes-dashboard-6cff4c7c4f-9lmds is kubernetes dashboard pod
+-- 8080 is external port on which service will be hit
+-- 9090 is TargetPort  from command kubectl describe service kubernetes-dashboard -n kubernetes-dashboard
+anurag@anurag-pc:~/Kubernetes/kubctl-executable$ ./kubectl -n kubernetes-dashboard port-forward kubernetes-dashboard-6cff4c7c4f-9lmds 8080:9090
+
+
+anurag@anurag-pc:~/Kubernetes/kubctl-executable$ ./kubectl get ingress --all-namespaces
+NAMESPACE              NAME                CLASS    HOSTS   ADDRESS          PORTS   AGE
+kubernetes-dashboard   dashboard-ingress   <none>   *       192.168.99.100   80      20h
